@@ -756,83 +756,83 @@ setup_wine() {
         local vkd3d_filename="vkd3d-proton-2.14.1.tar.zst"
         
         print_step "Downloading vkd3d-proton v2.14.1 from GitHub..."
-    if download_file "$vkd3d_url" "$directory/$vkd3d_filename" "vkd3d-proton"; then
-        print_success "vkd3d-proton downloaded successfully"
-    else
-        print_error "Failed to download vkd3d-proton"
-        print_warning "OpenCL support may not work correctly"
-    fi
-    
-    # Extract vkd3d-proton
-    print_step "Extracting vkd3d-proton archive..."
-    extracted=false
-    if command -v unzstd &> /dev/null; then
-        if unzstd -f "$directory/$vkd3d_filename" -o "$directory/vkd3d-proton.tar" 2>/dev/null; then
-            if tar -xf "$directory/vkd3d-proton.tar" -C "$directory" 2>/dev/null; then
-                rm "$directory/vkd3d-proton.tar"
-                extracted=true
-                print_success "vkd3d-proton extracted using unzstd"
-            fi
-        fi
-    elif command -v zstd &> /dev/null && tar --help 2>&1 | grep -q "use-compress-program"; then
-        if tar --use-compress-program=zstd -xf "$directory/$vkd3d_filename" -C "$directory" 2>/dev/null; then
-            extracted=true
-            print_success "vkd3d-proton extracted using zstd with tar"
-        fi
-    fi
-    
-    if [ "$extracted" = false ]; then
-        print_error "Cannot extract .tar.zst file. Please install zstd (e.g., sudo pacman -S zstd)"
-        print_warning "Skipping vkd3d-proton installation. OpenCL will not work!"
-        rm -f "$directory/$vkd3d_filename"
-    elif [ "$has_amd_gpu" = true ]; then
-        # Skip vkd3d installation for AMD GPU, clean up if downloaded
-        rm -f "$directory/$vkd3d_filename"
-        print_info "AMD GPU detected - skipping vkd3d-proton installation, will use DXVK instead"
-    else
-        rm -f "$directory/$vkd3d_filename"
-        
-        # Extract vkd3d-proton DLLs for later use (will be copied to Affinity directory after installation)
-        local vkd3d_dir=$(find "$directory" -type d -name "vkd3d-proton-*" | head -1)
-        if [ -n "$vkd3d_dir" ]; then
-            # Store DLLs in a temporary location for later copying
-            local vkd3d_temp="$directory/vkd3d_dlls"
-            mkdir -p "$vkd3d_temp"
-            
-            print_step "Extracting vkd3d-proton DLLs..."
-            # Copy DLL files to temp location (typical locations: x64/ or root)
-            dll_count=0
-            if [ -f "$vkd3d_dir/x64/d3d12.dll" ]; then
-                cp "$vkd3d_dir/x64/d3d12.dll" "$vkd3d_temp/" 2>/dev/null && ((dll_count++))
-            elif [ -f "$vkd3d_dir/d3d12.dll" ]; then
-                cp "$vkd3d_dir/d3d12.dll" "$vkd3d_temp/" 2>/dev/null && ((dll_count++))
-            fi
-            
-            if [ -f "$vkd3d_dir/x64/d3d12core.dll" ]; then
-                cp "$vkd3d_dir/x64/d3d12core.dll" "$vkd3d_temp/" 2>/dev/null && ((dll_count++))
-            elif [ -f "$vkd3d_dir/d3d12core.dll" ]; then
-                cp "$vkd3d_dir/d3d12core.dll" "$vkd3d_temp/" 2>/dev/null && ((dll_count++))
-            fi
-            
-            # Also install to Wine library directory
-            wine_lib_dir="$directory/ElementalWarriorWine/lib/wine/vkd3d-proton/x86_64-windows"
-            mkdir -p "$wine_lib_dir"
-            if [ -f "$vkd3d_temp/d3d12.dll" ]; then
-                cp "$vkd3d_temp/d3d12.dll" "$wine_lib_dir/" 2>/dev/null || true
-            fi
-            if [ -f "$vkd3d_temp/d3d12core.dll" ]; then
-                cp "$vkd3d_temp/d3d12core.dll" "$wine_lib_dir/" 2>/dev/null || true
-            fi
-            
-            # Remove extracted vkd3d-proton directory
-            rm -rf "$vkd3d_dir"
-            if [ $dll_count -gt 0 ]; then
-                print_success "Extracted $dll_count DLL file(s) for OpenCL support"
-            fi
+        if download_file "$vkd3d_url" "$directory/$vkd3d_filename" "vkd3d-proton"; then
+            print_success "vkd3d-proton downloaded successfully"
         else
-            print_warning "Could not find vkd3d-proton directory after extraction"
+            print_error "Failed to download vkd3d-proton"
+            print_warning "OpenCL support may not work correctly"
         fi
-    fi
+        
+        # Extract vkd3d-proton
+        print_step "Extracting vkd3d-proton archive..."
+        extracted=false
+        if command -v unzstd &> /dev/null; then
+            if unzstd -f "$directory/$vkd3d_filename" -o "$directory/vkd3d-proton.tar" 2>/dev/null; then
+                if tar -xf "$directory/vkd3d-proton.tar" -C "$directory" 2>/dev/null; then
+                    rm "$directory/vkd3d-proton.tar"
+                    extracted=true
+                    print_success "vkd3d-proton extracted using unzstd"
+                fi
+            fi
+        elif command -v zstd &> /dev/null && tar --help 2>&1 | grep -q "use-compress-program"; then
+            if tar --use-compress-program=zstd -xf "$directory/$vkd3d_filename" -C "$directory" 2>/dev/null; then
+                extracted=true
+                print_success "vkd3d-proton extracted using zstd with tar"
+            fi
+        fi
+        
+        if [ "$extracted" = false ]; then
+            print_error "Cannot extract .tar.zst file. Please install zstd (e.g., sudo pacman -S zstd)"
+            print_warning "Skipping vkd3d-proton installation. OpenCL will not work!"
+            rm -f "$directory/$vkd3d_filename"
+        elif [ "$has_amd_gpu" = true ]; then
+            # Skip vkd3d installation for AMD GPU, clean up if downloaded
+            rm -f "$directory/$vkd3d_filename"
+            print_info "AMD GPU detected - skipping vkd3d-proton installation, will use DXVK instead"
+        else
+            rm -f "$directory/$vkd3d_filename"
+            
+            # Extract vkd3d-proton DLLs for later use (will be copied to Affinity directory after installation)
+            local vkd3d_dir=$(find "$directory" -type d -name "vkd3d-proton-*" | head -1)
+            if [ -n "$vkd3d_dir" ]; then
+                # Store DLLs in a temporary location for later copying
+                local vkd3d_temp="$directory/vkd3d_dlls"
+                mkdir -p "$vkd3d_temp"
+            
+                print_step "Extracting vkd3d-proton DLLs..."
+                # Copy DLL files to temp location (typical locations: x64/ or root)
+                dll_count=0
+                if [ -f "$vkd3d_dir/x64/d3d12.dll" ]; then
+                    cp "$vkd3d_dir/x64/d3d12.dll" "$vkd3d_temp/" 2>/dev/null && ((dll_count++))
+                elif [ -f "$vkd3d_dir/d3d12.dll" ]; then
+                    cp "$vkd3d_dir/d3d12.dll" "$vkd3d_temp/" 2>/dev/null && ((dll_count++))
+                fi
+                
+                if [ -f "$vkd3d_dir/x64/d3d12core.dll" ]; then
+                    cp "$vkd3d_dir/x64/d3d12core.dll" "$vkd3d_temp/" 2>/dev/null && ((dll_count++))
+                elif [ -f "$vkd3d_dir/d3d12core.dll" ]; then
+                    cp "$vkd3d_dir/d3d12core.dll" "$vkd3d_temp/" 2>/dev/null && ((dll_count++))
+                fi
+                
+                # Also install to Wine library directory
+                wine_lib_dir="$directory/ElementalWarriorWine/lib/wine/vkd3d-proton/x86_64-windows"
+                mkdir -p "$wine_lib_dir"
+                if [ -f "$vkd3d_temp/d3d12.dll" ]; then
+                    cp "$vkd3d_temp/d3d12.dll" "$wine_lib_dir/" 2>/dev/null || true
+                fi
+                if [ -f "$vkd3d_temp/d3d12core.dll" ]; then
+                    cp "$vkd3d_temp/d3d12core.dll" "$wine_lib_dir/" 2>/dev/null || true
+                fi
+                
+                # Remove extracted vkd3d-proton directory
+                rm -rf "$vkd3d_dir"
+                if [ $dll_count -gt 0 ]; then
+                    print_success "Extracted $dll_count DLL file(s) for OpenCL support"
+                fi
+            else
+                print_warning "Could not find vkd3d-proton directory after extraction"
+            fi
+        fi
     fi
     
     # Setup Wine
@@ -993,7 +993,7 @@ create_desktop_entry() {
     echo "Comment=A powerful $app_name software." >> "$desktop_file"
     echo "Icon=$icon_path" >> "$desktop_file"
     echo "Path=$directory" >> "$desktop_file"
-    echo "Exec=env WINEPREFIX=$directory ${dxvk_env}$directory/ElementalWarriorWine/bin/wine \"$app_path\"" >> "$desktop_file"
+    echo "Exec=env WINEPREFIX=$directory WINEDEBUG=-all ${dxvk_env}$directory/ElementalWarriorWine/bin/wine \"$app_path\"" >> "$desktop_file"
     echo "Terminal=false" >> "$desktop_file"
     echo "NoDisplay=false" >> "$desktop_file"
     echo "StartupWMClass=${app_name,,}.exe" >> "$desktop_file"
@@ -1023,7 +1023,7 @@ create_all_in_one_desktop_entry() {
     echo "Comment=The unified Affinity application for photo editing, design, and publishing" >> "$desktop_file"
     echo "Icon=$icon_path" >> "$desktop_file"
     echo "Path=$directory" >> "$desktop_file"
-    echo "Exec=env WINEPREFIX=$directory ${dxvk_env}$directory/ElementalWarriorWine/bin/wine \"$directory/drive_c/Program Files/Affinity/Affinity/Affinity.exe\"" >> "$desktop_file"
+    echo "Exec=env WINEPREFIX=$directory WINEDEBUG=-all ${dxvk_env}$directory/ElementalWarriorWine/bin/wine \"$directory/drive_c/Program Files/Affinity/Affinity/Affinity.exe\"" >> "$desktop_file"
     echo "Terminal=false" >> "$desktop_file"
     echo "NoDisplay=false" >> "$desktop_file"
     echo "Type=Application" >> "$desktop_file"
@@ -1199,6 +1199,7 @@ install_affinity() {
             
             # Copy installer to Affinity directory
             print_step "Copying installer to installation directory..."
+            mkdir -p "$directory"
             cp "$installer_path" "$directory/$filename"
             print_success "Installer copied"
             ;;
@@ -1234,6 +1235,9 @@ install_affinity() {
             esac
             
             installer_path="$directory/$filename"
+            
+            # Ensure directory exists before downloading
+            mkdir -p "$directory"
             
             # Download the installer
             if download_file "$download_url" "$installer_path" "Affinity $app_name installer"; then
@@ -1349,6 +1353,195 @@ install_affinity() {
 }
 
 # ==========================================
+# Uninstall Functions
+# ==========================================
+
+# Function to uninstall Affinity applications
+uninstall_affinity() {
+    local directory="$HOME/.AffinityLinux"
+    
+    print_header "Affinity Uninstaller"
+    
+    # Check what's installed
+    local installed=$(detect_installed_affinity)
+    
+    if [ -z "$installed" ]; then
+        print_warning "No Affinity applications detected."
+        echo ""
+        print_info "Would you like to remove the entire Affinity Linux installation?"
+        print_info "This includes Wine prefix, configuration, and all related files."
+        echo ""
+        echo -n -e "${BOLD}Remove everything? (y/N): ${NC}"
+        read -r confirm
+        
+        if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            print_step "Stopping Wine processes..."
+            wineserver -k 2>/dev/null || true
+            sleep 2
+            
+            print_step "Removing Affinity Linux directory..."
+            rm -rf "$directory"
+            print_success "Affinity Linux directory removed"
+            
+            print_step "Removing desktop entries..."
+            rm -f "$HOME/.local/share/applications/Affinity*.desktop"
+            rm -f "$HOME/Desktop/Affinity*.desktop"
+            rm -f "$HOME/Desktop/Affinity.desktop"
+            print_success "Desktop entries removed"
+            
+            print_step "Removing application icons..."
+            rm -f "$HOME/.local/share/icons/Affinity*.svg"
+            print_success "Icons removed"
+            
+            echo ""
+            print_success "Affinity Linux has been completely removed!"
+        else
+            print_info "Uninstall cancelled."
+        fi
+        return 0
+    fi
+    
+    # Show what's installed and options
+    echo ""
+    print_info "Detected installed Affinity products:"
+    echo ""
+    
+    local idx=1
+    declare -a product_list
+    
+    for product in $installed; do
+        case $product in
+            "Affinity")
+                echo -e "  ${GREEN}$idx.${NC} Affinity (Unified Application)"
+                product_list+=("Affinity")
+                ((idx++))
+                ;;
+            "Photo")
+                echo -e "  ${GREEN}$idx.${NC} Affinity Photo"
+                product_list+=("Photo")
+                ((idx++))
+                ;;
+            "Designer")
+                echo -e "  ${GREEN}$idx.${NC} Affinity Designer"
+                product_list+=("Designer")
+                ((idx++))
+                ;;
+            "Publisher")
+                echo -e "  ${GREEN}$idx.${NC} Affinity Publisher"
+                product_list+=("Publisher")
+                ((idx++))
+                ;;
+        esac
+    done
+    
+    echo ""
+    echo -e "  ${RED}$idx.${NC} ${BOLD}Remove ALL (including Wine prefix)${NC}"
+    local remove_all_idx=$idx
+    ((idx++))
+    echo -e "  ${YELLOW}$idx.${NC} Cancel"
+    local cancel_idx=$idx
+    
+    echo ""
+    echo -n -e "${BOLD}Select what to remove (1-$idx): ${NC}"
+    read -r selection
+    
+    # Validate input
+    if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt "$idx" ]; then
+        print_error "Invalid selection."
+        return 1
+    fi
+    
+    # Handle cancel
+    if [ "$selection" -eq "$cancel_idx" ]; then
+        print_info "Uninstall cancelled."
+        return 0
+    fi
+    
+    # Handle remove all
+    if [ "$selection" -eq "$remove_all_idx" ]; then
+        echo ""
+        print_warning "This will remove ALL Affinity products and the Wine prefix!"
+        print_warning "All your Affinity settings and data will be deleted."
+        echo ""
+        echo -n -e "${RED}${BOLD}Are you sure? Type 'DELETE' to confirm: ${NC}"
+        read -r confirm
+        
+        if [ "$confirm" = "DELETE" ]; then
+            print_step "Stopping Wine processes..."
+            wineserver -k 2>/dev/null || true
+            sleep 2
+            
+            print_step "Removing Affinity Linux directory..."
+            rm -rf "$directory"
+            print_success "Affinity Linux directory removed"
+            
+            print_step "Removing all desktop entries..."
+            rm -f "$HOME/.local/share/applications/Affinity*.desktop"
+            rm -f "$HOME/Desktop/Affinity*.desktop"
+            rm -f "$HOME/Desktop/Affinity.desktop"
+            print_success "Desktop entries removed"
+            
+            print_step "Removing application icons..."
+            rm -f "$HOME/.local/share/icons/Affinity*.svg"
+            print_success "Icons removed"
+            
+            echo ""
+            print_success "All Affinity products have been completely removed!"
+            print_info "Run this script again to reinstall."
+        else
+            print_info "Uninstall cancelled. You must type 'DELETE' exactly to confirm."
+        fi
+        return 0
+    fi
+    
+    # Remove individual product
+    local selected_idx=$((selection - 1))
+    local selected_product="${product_list[$selected_idx]}"
+    
+    echo ""
+    print_warning "This will remove Affinity $selected_product."
+    echo -n -e "${BOLD}Are you sure? (y/N): ${NC}"
+    read -r confirm
+    
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        print_step "Stopping Wine processes..."
+        wineserver -k 2>/dev/null || true
+        sleep 2
+        
+        case $selected_product in
+            "Affinity")
+                print_step "Removing Affinity (Unified Application)..."
+                rm -rf "$directory/drive_c/Program Files/Affinity/Affinity"
+                rm -f "$HOME/.local/share/applications/Affinity.desktop"
+                rm -f "$HOME/Desktop/Affinity.desktop"
+                ;;
+            "Photo")
+                print_step "Removing Affinity Photo..."
+                rm -rf "$directory/drive_c/Program Files/Affinity/Photo 2"
+                rm -f "$HOME/.local/share/applications/AffinityPhoto.desktop"
+                rm -f "$HOME/Desktop/AffinityPhoto.desktop"
+                ;;
+            "Designer")
+                print_step "Removing Affinity Designer..."
+                rm -rf "$directory/drive_c/Program Files/Affinity/Designer 2"
+                rm -f "$HOME/.local/share/applications/AffinityDesigner.desktop"
+                rm -f "$HOME/Desktop/AffinityDesigner.desktop"
+                ;;
+            "Publisher")
+                print_step "Removing Affinity Publisher..."
+                rm -rf "$directory/drive_c/Program Files/Affinity/Publisher 2"
+                rm -f "$HOME/.local/share/applications/AffinityPublisher.desktop"
+                rm -f "$HOME/Desktop/AffinityPublisher.desktop"
+                ;;
+        esac
+        
+        print_success "Affinity $selected_product has been removed!"
+    else
+        print_info "Uninstall cancelled."
+    fi
+}
+
+# ==========================================
 # User Interface Functions
 # ==========================================
 
@@ -1387,11 +1580,16 @@ show_menu() {
     echo -e "      ${CYAN}Desktop publishing application for creating professional layouts," 
     echo -e "      magazines, books, and print materials.${NC}"
     echo ""
-    echo -e "  ${GREEN}5.${NC} ${BOLD}Show Special Thanks${NC}"
+    echo -e "${BOLD}Management:${NC}"
     echo ""
-    echo -e "  ${GREEN}6.${NC} ${BOLD}Exit${NC}"
+    echo -e "  ${RED}5.${NC} ${BOLD}Uninstall/Remove Affinity${NC}"
+    echo -e "      ${CYAN}Remove installed Affinity products or clean up the entire installation.${NC}"
     echo ""
-    echo -n -e "${BOLD}Please select an option (1-6): ${NC}"
+    echo -e "  ${GREEN}6.${NC} ${BOLD}Show Special Thanks${NC}"
+    echo ""
+    echo -e "  ${GREEN}7.${NC} ${BOLD}Exit${NC}"
+    echo ""
+    echo -n -e "${BOLD}Please select an option (1-7): ${NC}"
 }
 
 # ==========================================
@@ -1558,19 +1756,22 @@ main() {
                 install_affinity "Publisher"
                 ;;
             5)
-                show_special_thanks
+                uninstall_affinity
                 ;;
             6)
+                show_special_thanks
+                ;;
+            7)
                 print_header "Thank You"
                 print_success "Thank you for using the Affinity Installation Script!"
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please select a number between 1 and 6."
+                print_error "Invalid option. Please select a number between 1 and 7."
                 ;;
         esac
         
-        if [ "$choice" != "6" ]; then
+        if [ "$choice" != "7" ]; then
             echo ""
             read -n 1 -s -r -p "Press any key to continue..."
         fi
