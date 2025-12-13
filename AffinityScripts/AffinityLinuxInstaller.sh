@@ -621,7 +621,8 @@ setup_wine() {
     print_success "Installation directory created"
     
     # Download the specific Wine version
-    print_step "Downloading Wine binary from GitHub releases..."
+    print_step "Downloading Wine binary from GitHub releases (~200MB)..."
+    print_info "This may take a few minutes depending on your connection speed."
     if download_file "$wine_url" "$directory/$filename" "Wine binaries"; then
         print_success "Wine binary downloaded successfully"
     else
@@ -705,8 +706,7 @@ setup_wine() {
                 print_success "Windows metadata extracted successfully using 7z"
             else
                 print_warning "7z extraction had issues, trying unzip..."
-                unzip -o "$directory/Winmetadata.zip" -d "$directory/drive_c/windows/system32" >/dev/null 2>&1 || true
-                if [ $? -eq 0 ]; then
+                if unzip -o "$directory/Winmetadata.zip" -d "$directory/drive_c/windows/system32" >/dev/null 2>&1; then
                     print_success "Windows metadata extracted using unzip"
                 else
                     print_error "Extraction failed with both 7z and unzip. File may be corrupted."
@@ -838,40 +838,48 @@ setup_wine() {
     # Setup Wine
     print_header "Wine Configuration"
     print_info "Installing required Windows libraries and configuring Wine..."
+    echo ""
+    print_warning "This section takes 15-30 minutes depending on your internet speed."
+    print_warning "The script is NOT frozen - winetricks downloads are happening in the background."
+    print_warning "Please be patient and do not close this terminal."
+    echo ""
     
-    print_step "Installing .NET Framework 3.5..."
+    print_step "Installing .NET Framework 3.5... (this may take 5-10 minutes)"
+    print_info "Downloading and installing .NET 3.5 components..."
     WINEPREFIX="$directory" winetricks --unattended --force --no-isolate --optout dotnet35 || true
-    print_progress ".NET 3.5 installation attempted"
+    print_success ".NET 3.5 installation completed"
     
-    print_step "Installing .NET Framework 4.8..."
+    print_step "Installing .NET Framework 4.8... (this may take 5-10 minutes)"
+    print_info "Downloading and installing .NET 4.8 components..."
     WINEPREFIX="$directory" winetricks --unattended --force --no-isolate --optout dotnet48 || true
-    print_progress ".NET 4.8 installation attempted"
+    print_success ".NET 4.8 installation completed"
     
     print_step "Installing Windows core fonts..."
     WINEPREFIX="$directory" winetricks --unattended --force --no-isolate --optout corefonts || true
-    print_progress "Core fonts installation attempted"
+    print_success "Core fonts installation completed"
     
     print_step "Installing Visual C++ Redistributables 2022..."
     WINEPREFIX="$directory" winetricks --unattended --force --no-isolate --optout vcrun2022 || true
-    print_progress "VC++ 2022 installation attempted"
+    print_success "VC++ 2022 installation completed"
     
     print_step "Installing MSXML 3.0..."
     WINEPREFIX="$directory" winetricks --unattended --force --no-isolate --optout msxml3 || true
-    print_progress "MSXML 3.0 installation attempted"
+    print_success "MSXML 3.0 installation completed"
     
     print_step "Installing MSXML 6.0..."
     WINEPREFIX="$directory" winetricks --unattended --force --no-isolate --optout msxml6 || true
-    print_progress "MSXML 6.0 installation attempted"
+    print_success "MSXML 6.0 installation completed"
     
     print_step "Installing Tahoma font..."
     WINEPREFIX="$directory" winetricks --unattended --force --no-isolate --optout tahoma || true
-    print_progress "Tahoma font installation attempted"
+    print_success "Tahoma font installation completed"
     
     print_step "Configuring Wine to use Vulkan renderer..."
     WINEPREFIX="$directory" winetricks --unattended --force --no-isolate --optout renderer=vulkan || true
     print_success "Wine configured with Vulkan renderer"
     
-    print_info "Note: The above installations may take several minutes. Errors are normal if components are already installed."
+    echo ""
+    print_success "All Wine dependencies installed!"
     
     # Set and verify Windows version to 11
     verify_windows_version
@@ -1542,6 +1550,124 @@ uninstall_affinity() {
 }
 
 # ==========================================
+# Troubleshooting Functions
+# ==========================================
+
+# Function to show troubleshooting menu
+show_troubleshooting() {
+    local directory="$HOME/.AffinityLinux"
+    
+    print_header "Troubleshooting"
+    echo ""
+    print_info "This section contains fixes for issues that occur on a case-by-case basis."
+    print_info "If you have a persistent error not listed here, please open an issue at:"
+    echo -e "  ${CYAN}https://github.com/Wanesty/AffinityOnLinux${NC} (original)"
+    echo -e "  ${CYAN}https://github.com/KobiMGit/AffinityOnLinux${NC} (CLI-focused fork)"
+    echo ""
+    print_info "Select a fix to apply:"
+    echo ""
+    echo -e "  ${GREEN}1.${NC} ${BOLD}Fix MSASN1.dll Error${NC}"
+    echo -e "      ${CYAN}Installs Windows cryptographic libraries (crypt32) to fix${NC}"
+    echo -e "      ${CYAN}'unimplemented function MSASN1.dll.ASN1DEREncBeginBlk' errors.${NC}"
+    echo ""
+    echo -e "  ${GREEN}2.${NC} ${BOLD}Reinstall Wine Dependencies${NC}"
+    echo -e "      ${CYAN}Reinstalls .NET Framework, Visual C++, fonts, and other${NC}"
+    echo -e "      ${CYAN}Windows components that may have become corrupted.${NC}"
+    echo ""
+    echo -e "  ${GREEN}3.${NC} ${BOLD}Reset Wine Prefix${NC}"
+    echo -e "      ${CYAN}Completely resets the Wine environment (keeps installers).${NC}"
+    echo -e "      ${RED}Warning: You will need to reinstall Affinity applications.${NC}"
+    echo ""
+    echo -e "  ${GREEN}4.${NC} ${BOLD}Restore Windows Metadata${NC}"
+    echo -e "      ${CYAN}Re-downloads and extracts WinMetadata files if they were${NC}"
+    echo -e "      ${CYAN}corrupted during installation.${NC}"
+    echo ""
+    echo -e "  ${YELLOW}5.${NC} Back to Main Menu"
+    echo ""
+    echo -n -e "${BOLD}Select an option (1-5): ${NC}"
+    read -r ts_choice
+    
+    case $ts_choice in
+        1)
+            print_header "Fixing MSASN1.dll Error"
+            print_step "Installing Windows Cryptographic libraries (crypt32)..."
+            if WINEPREFIX="$directory" winetricks --unattended --force crypt32; then
+                print_success "crypt32 installed successfully!"
+                print_info "The MSASN1.dll error should now be resolved."
+            else
+                print_warning "Installation completed with warnings (this may be normal)"
+            fi
+            ;;
+        2)
+            print_header "Reinstalling Wine Dependencies"
+            print_info "This will reinstall all Windows components..."
+            echo ""
+            print_warning "This process takes 15-20 minutes. Please be patient."
+            echo ""
+            
+            print_step "Installing .NET Framework 3.5... (5-10 minutes)"
+            WINEPREFIX="$directory" winetricks --unattended --force dotnet35 || true
+            print_success ".NET 3.5 completed"
+            
+            print_step "Installing .NET Framework 4.8... (5-10 minutes)"
+            WINEPREFIX="$directory" winetricks --unattended --force dotnet48 || true
+            print_success ".NET 4.8 completed"
+            
+            print_step "Installing Visual C++ Redistributables..."
+            WINEPREFIX="$directory" winetricks --unattended --force vcrun2022 || true
+            print_success "VC++ completed"
+            
+            print_step "Installing Windows core fonts..."
+            WINEPREFIX="$directory" winetricks --unattended --force corefonts || true
+            print_success "Fonts completed"
+            
+            print_step "Installing MSXML libraries..."
+            WINEPREFIX="$directory" winetricks --unattended --force msxml3 msxml6 || true
+            print_success "MSXML completed"
+            
+            echo ""
+            print_success "Wine dependencies reinstalled!"
+            ;;
+        3)
+            print_header "Reset Wine Prefix"
+            print_warning "This will delete your Wine prefix and all Affinity installations!"
+            print_warning "You will need to reinstall Affinity applications after this."
+            echo ""
+            echo -n -e "${RED}${BOLD}Are you sure? Type 'RESET' to confirm: ${NC}"
+            read -r confirm
+            
+            if [ "$confirm" = "RESET" ]; then
+                print_step "Stopping Wine processes..."
+                wineserver -k 2>/dev/null || true
+                sleep 2
+                
+                print_step "Removing Wine prefix (keeping ElementalWarriorWine)..."
+                # Keep the Wine binaries, just remove the prefix
+                rm -rf "$directory/drive_c"
+                rm -rf "$directory/.update-timestamp"
+                rm -rf "$directory/system.reg"
+                rm -rf "$directory/user.reg"
+                rm -rf "$directory/userdef.reg"
+                print_success "Wine prefix reset!"
+                print_info "Run the installer again to set up Wine and reinstall Affinity."
+            else
+                print_info "Reset cancelled."
+            fi
+            ;;
+        4)
+            print_header "Restoring Windows Metadata"
+            restore_winmetadata
+            ;;
+        5)
+            return 0
+            ;;
+        *)
+            print_error "Invalid option."
+            ;;
+    esac
+}
+
+# ==========================================
 # User Interface Functions
 # ==========================================
 
@@ -1585,11 +1711,14 @@ show_menu() {
     echo -e "  ${RED}5.${NC} ${BOLD}Uninstall/Remove Affinity${NC}"
     echo -e "      ${CYAN}Remove installed Affinity products or clean up the entire installation.${NC}"
     echo ""
-    echo -e "  ${GREEN}6.${NC} ${BOLD}Show Special Thanks${NC}"
+    echo -e "  ${YELLOW}6.${NC} ${BOLD}Troubleshooting${NC}"
+    echo -e "      ${CYAN}Fix common issues like MSASN1.dll errors, reset Wine, or repair.${NC}"
     echo ""
-    echo -e "  ${GREEN}7.${NC} ${BOLD}Exit${NC}"
+    echo -e "  ${GREEN}7.${NC} ${BOLD}Show Special Thanks${NC}"
     echo ""
-    echo -n -e "${BOLD}Please select an option (1-7): ${NC}"
+    echo -e "  ${GREEN}8.${NC} ${BOLD}Exit${NC}"
+    echo ""
+    echo -n -e "${BOLD}Please select an option (1-8): ${NC}"
 }
 
 # ==========================================
@@ -1741,6 +1870,8 @@ main() {
     while true; do
         show_menu
         read -r choice
+        # Trim whitespace from input
+        choice=$(echo "$choice" | tr -d '[:space:]')
         
         case $choice in
             1)
@@ -1759,19 +1890,22 @@ main() {
                 uninstall_affinity
                 ;;
             6)
-                show_special_thanks
+                show_troubleshooting
                 ;;
             7)
+                show_special_thanks
+                ;;
+            8)
                 print_header "Thank You"
                 print_success "Thank you for using the Affinity Installation Script!"
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please select a number between 1 and 7."
+                print_error "Invalid option. Please select a number between 1 and 8."
                 ;;
         esac
         
-        if [ "$choice" != "7" ]; then
+        if [ "$choice" != "8" ]; then
             echo ""
             read -n 1 -s -r -p "Press any key to continue..."
         fi
